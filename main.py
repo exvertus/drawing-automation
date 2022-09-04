@@ -20,11 +20,13 @@ MATERIAL_SOUL_WATERMARK = None
 
 @functions_framework.cloud_event
 def pub_proc_image(cloud_event):
+    event_id = cloud_event["id"]
     image = cloud_event.data["name"]
     if already_processed(image):
         return
     cleaned_image = add_watermark(obfuscate_exif(image), MATERIAL_SOUL_WATERMARK)
     public_images = shrink_images(cleaned_image, MAX_DIMENSIONS)
+    add_eventid_to_db(image, event_id)
 
 def already_processed(image):
     """True if image already has an event-id in the database.
@@ -43,5 +45,10 @@ def add_watermark(image, watermark):
 
 def shrink_images(image, max_dict=MAX_DIMENSIONS):
     """Return images scaled down according to max_dict.
+    """
+    pass
+
+def add_eventid_to_db(image, event_id):
+    """Add a reference to the eventid as confirmation we processed this image.
     """
     pass
