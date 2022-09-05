@@ -15,7 +15,8 @@ import functions_framework
 storage_client = None
 # TODO: Research suitable dimensions and names based on publishing and site needs.
 MAX_DIMENSIONS = {"large": 1024,
-                  "thumbnail": 256}
+                  "thumbnail": 256,
+                  "_joiner-chars": "-"}
 MATERIAL_SOUL_WATERMARK = None
 
 @functions_framework.cloud_event
@@ -23,10 +24,11 @@ def pub_proc_image(cloud_event):
     event_id = cloud_event["id"]
     image = cloud_event.data["name"]
     if already_processed(image):
-        return
+        return image
     cleaned_image = add_watermark(obfuscate_exif(image), MATERIAL_SOUL_WATERMARK)
     public_images = shrink_images(cleaned_image, MAX_DIMENSIONS)
     add_eventid_to_db(image, event_id)
+    return image
 
 def already_processed(image):
     """True if image already has an event-id in the database.
