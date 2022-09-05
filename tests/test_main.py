@@ -39,7 +39,7 @@ class TestSystem:
         blob = test_bucket.blob(image_name)
         # TODO: Figure out high-resolution test file suitable for making assertions against.
         #       Maybe something like the emergency-broadcast image from TV?
-        blob.upload_from_filename(Path("./test.jpg"))
+        blob.upload_from_filename(Path(".tests/test.jpg"))
         yield image_name
 
     def test_pub_proc_image(upload_test_image):
