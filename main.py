@@ -15,9 +15,9 @@ import functions_framework
 storage_client = None
 # TODO: Research suitable dimensions and names based on publishing and site needs.
 MAX_DIMENSIONS = {"large": 1024,
-                  "thumbnail": 256,
-                  "_joiner-chars": "-"}
-MATERIAL_SOUL_WATERMARK = None
+                  "thumbnail": 256}
+BUCKET_NAME_JOINER = "-"
+MATERIAL_SOUL_WATERMARK = "TODO"
 
 @functions_framework.cloud_event
 def pub_proc_image(cloud_event):

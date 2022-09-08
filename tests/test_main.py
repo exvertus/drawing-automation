@@ -18,20 +18,27 @@ class TestIntegration:
 class TestSystem:
     """Tests that run against live system.
     """
-    @pytest.fixture
-    def deploy():
-        subprocess.run(['./deploy.sh', TEST_BUCKET])
+    @pytest.fixture(scope="class")
+    def deploy(self):
+        deploy_result = subprocess.run(['./deploy.sh', TEST_BUCKET])
+        return deploy_result
 
-    @pytest.fixture
-    def storage_client():
-        yield storage.Client()
+    @pytest.fixture(scope="class")
+    def storage_client(self):
+        sc = storage.Client()
+        return sc
 
-    @pytest.fixture
-    def test_bucket(storage_client):
-        yield storage_client.get_bucket(TEST_BUCKET)
+    @pytest.fixture(scope="class")
+    def test_bucket(self, storage_client):
+        tb = storage_client.get_bucket(TEST_BUCKET)
+        return tb
 
-    @pytest.fixture
-    def upload_test_image(test_bucket):
+    @pytest.fixture(
+        scope="class", 
+        autouse=True, 
+        params=main.MAX_DIMENSIONS.items()
+    )
+    def upload_test_image(self, request, deploy, test_bucket):
         # Use random name per-test run in case cleanup fails.
         # Re-using the same image name will break future test
         # runs in the case that the test was halted before cleanup/delete.
@@ -41,16 +48,27 @@ class TestSystem:
         #       Maybe something like the emergency-broadcast image from TV?
         blob.upload_from_filename(Path(".tests/test.jpg"))
         yield image_name
+        for size in main.MAX_DIMENSIONS:
+            downstream_img = f"{image_name}{main.BUCKET_PATH_JOINER}{size}"
+            # TODO: Delete each downstream image
+        # TODO: Delete original image
 
-    def test_pub_proc_image(upload_test_image):
-        """Test that each intended image copy is to-size and 
-        that each resulting file is cleaned and watermarked.
-        """
-        for dimension in main.MAX_DIMENSIONS:
-            # TODO: assert processed_image exists at expected bucket path
-            # TODO: assert file has no sensitive exif data
-            # TODO: assert watermark has been added???
-            #         - how? assert expected-watermarked pixel has been darkened?
-            # TODO: assert max(width, height) <= main.MAX_DIMENSIONS[dimension]
-            # TODO: assert main.already_processed(image) returns True
-            pass
+    def test_image_exists(self, request, upload_test_image):
+        max_dimension = request.param[0]
+        assert "TODO: image_exists"
+
+    def test_exif_wiped(self, request, upload_test_image):
+        max_dimension = request.param[0]
+        assert "TODO: exif_wiped"
+
+    def test_watermark_added(self, request, upload_test_image):
+        max_dimension = request.param[0]
+        assert "TODO: watermark_added"
+
+    def test_expected_dimensions(self, request, upload_test_image):
+        max_dimension = request.param[0]
+        assert "TODO: expected_dimensions"
+    
+    def test_record_updated(self, request, upload_test_image):
+        max_dimension = request.param[0]
+        assert "TODO: record_updated"
