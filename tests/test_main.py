@@ -1,5 +1,6 @@
 import pytest
 import subprocess
+import time
 from pathlib import Path
 from os import getenv
 from uuid import uuid4
@@ -8,6 +9,7 @@ import main
 
 PROJECT = getenv('GCP_PROJECT')
 TEST_BUCKET = getenv('TEST_BUCKET')
+TEST_OUTPUT_BUCKET = getenv('TEST_OUTPUT_BUCKET')
 
 class TestUnit:
     pass
@@ -33,25 +35,32 @@ class TestSystem:
         tb = storage_client.get_bucket(TEST_BUCKET)
         return tb
 
+    @pytest.fixture(scope="class")
+    def output_bucket(self, storage_client):
+        # TODO: Monkey-mock main.OUTPUT_BUCKET to TEST_OUTPUT_BUCKET value
+        ob = storage_client.get_bucket(main.OUTPUT_BUCKET)
+        return ob
+
     @pytest.fixture(
         scope="class", 
         autouse=True, 
         params=main.MAX_DIMENSIONS.items()
     )
-    def upload_test_image(self, request, deploy, test_bucket):
+    def upload_test_image(self, request, deploy, storage_client, test_bucket):
         # Use random name per-test run in case cleanup fails.
         # Re-using the same image name will break future test
         # runs in the case that the test was halted before cleanup/delete.
         image_name = "{}.jpg".format(uuid4())
         blob = test_bucket.blob(image_name)
-        # TODO: Figure out high-resolution test file suitable for making assertions against.
-        #       Maybe something like the emergency-broadcast image from TV?
         blob.upload_from_filename(Path(".tests/test.jpg"))
+        # Wait for Function call from upload to complete.
+        time.sleep(90)
+
         yield image_name
+
         for size in main.MAX_DIMENSIONS:
-            downstream_img = f"{image_name}{main.BUCKET_PATH_JOINER}{size}"
-            # TODO: Delete each downstream image
-        # TODO: Delete original image
+            ds_blob = main.target_blob_path(image_name, size)
+        blob.delete()
 
     def test_image_exists(self, request, upload_test_image):
         max_dimension = request.param[0]

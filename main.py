@@ -8,16 +8,20 @@ copies of images suitable for public consumption:
 """
 
 import functions_framework
+from os import getenv
+
+BUCKET_NAME_JOINER = "-"
+INPUT_BUCKET = getenv('DRAWING_INPUT_BUCKET')
+OUTPUT_BUCKET = getenv('DRAWING_OUTPUT_BUCKET')
+# TODO: Research suitable dimensions and names based on publishing and site needs.
+MAX_DIMENSIONS = {"large": 1024,
+                  "thumbnail": 256}
+MATERIAL_SOUL_WATERMARK = "TODO"
 
 # Initialize cache for clients, requests sessions, DB-connections, etc.
 # Global-scope code is executed on cold starts only.
 # Use lazy initialization if there is any chance a reference won't be used.
 storage_client = None
-# TODO: Research suitable dimensions and names based on publishing and site needs.
-MAX_DIMENSIONS = {"large": 1024,
-                  "thumbnail": 256}
-BUCKET_NAME_JOINER = "-"
-MATERIAL_SOUL_WATERMARK = "TODO"
 
 @functions_framework.cloud_event
 def pub_proc_image(cloud_event):
@@ -29,6 +33,9 @@ def pub_proc_image(cloud_event):
     public_images = shrink_images(cleaned_image, MAX_DIMENSIONS)
     add_eventid_to_db(image, event_id)
     return image
+
+def target_blob_path(image_name, description=""):
+    pass
 
 def already_processed(image):
     """True if image already has an event-id in the database.
