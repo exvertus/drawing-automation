@@ -8,7 +8,7 @@ from google.cloud import storage
 import main
 
 PROJECT = getenv('GCP_PROJECT')
-TEST_BUCKET = getenv('TEST_BUCKET')
+TEST_INPUT_BUCKET = getenv('TEST_INPUT_BUCKET')
 TEST_OUTPUT_BUCKET = getenv('TEST_OUTPUT_BUCKET')
 
 class TestUnit:
@@ -22,22 +22,26 @@ class TestSystem:
     """
     @pytest.fixture(scope="class")
     def deploy(self):
-        deploy_result = subprocess.run(['./deploy.sh', TEST_BUCKET])
+        deploy_result = subprocess.run(['./deploy.sh', TEST_INPUT_BUCKET])
         return deploy_result
 
     @pytest.fixture(scope="class")
     def storage_client(self):
+        # TODO: Use main's storage client once it has one to avoid using two
         sc = storage.Client()
         return sc
 
     @pytest.fixture(scope="class")
-    def test_bucket(self, storage_client):
-        tb = storage_client.get_bucket(TEST_BUCKET)
+    def input_bucket(self, storage_client, monkeypatch):
+        monkeypatch.setenv('DRAWING_INPUT_BUCKET', TEST_INPUT_BUCKET)
+        monkeypatch.setattr(main, "INPUT_BUCKET", TEST_INPUT_BUCKET)
+        tb = storage_client.get_bucket(TEST_INPUT_BUCKET)
         return tb
 
     @pytest.fixture(scope="class")
-    def output_bucket(self, storage_client):
-        # TODO: Monkey-mock main.OUTPUT_BUCKET to TEST_OUTPUT_BUCKET value
+    def output_bucket(self, monkeypatch, storage_client):
+        monkeypatch.setenv('DRAWING_OUTPUT_BUCKET', TEST_OUTPUT_BUCKET)
+        monkeypatch.setattr(main, "OUTPUT_BUCKET", TEST_OUTPUT_BUCKET)
         ob = storage_client.get_bucket(main.OUTPUT_BUCKET)
         return ob
 
@@ -46,12 +50,12 @@ class TestSystem:
         autouse=True, 
         params=main.MAX_DIMENSIONS.items()
     )
-    def upload_test_image(self, request, deploy, storage_client, test_bucket):
+    def upload_test_image(self, request, deploy, storage_client, input_bucket):
         # Use random name per-test run in case cleanup fails.
         # Re-using the same image name will break future test
         # runs in the case that the test was halted before cleanup/delete.
         image_name = "{}.jpg".format(uuid4())
-        blob = test_bucket.blob(image_name)
+        blob = input_bucket.blob(image_name)
         blob.upload_from_filename(Path(".tests/test.jpg"))
         # Wait for Function call from upload to complete.
         time.sleep(90)
