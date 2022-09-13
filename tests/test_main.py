@@ -70,18 +70,22 @@ class TestSystem:
         max_dimension = request.param[0]
         assert "TODO: image_exists"
 
+    @pytest.disable()
     def test_exif_wiped(self, request, upload_test_image):
         max_dimension = request.param[0]
         assert "TODO: exif_wiped"
 
+    @pytest.disable()
     def test_watermark_added(self, request, upload_test_image):
         max_dimension = request.param[0]
         assert "TODO: watermark_added"
 
+    @pytest.disable()
     def test_expected_dimensions(self, request, upload_test_image):
         max_dimension = request.param[0]
         assert "TODO: expected_dimensions"
     
+    @pytest.disable()
     def test_record_updated(self, request, upload_test_image):
         max_dimension = request.param[0]
         assert "TODO: record_updated"
