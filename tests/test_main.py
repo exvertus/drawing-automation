@@ -27,20 +27,20 @@ class TestSystem:
 
     @pytest.fixture(scope="class")
     def storage_client(self):
-        # TODO: Use main's storage client once it has one to avoid using two
+        # TODO: Use cached storage client once main has one
         sc = storage.Client()
         return sc
 
     @pytest.fixture(scope="class")
     def input_bucket(self, storage_client, monkeypatch):
-        monkeypatch.setenv('DRAWING_INPUT_BUCKET', TEST_INPUT_BUCKET)
+        monkeypatch.setenv('LIVE_INPUT_BUCKET', TEST_INPUT_BUCKET)
         monkeypatch.setattr(main, "INPUT_BUCKET", TEST_INPUT_BUCKET)
         tb = storage_client.get_bucket(TEST_INPUT_BUCKET)
         return tb
 
     @pytest.fixture(scope="class")
     def output_bucket(self, monkeypatch, storage_client):
-        monkeypatch.setenv('DRAWING_OUTPUT_BUCKET', TEST_OUTPUT_BUCKET)
+        monkeypatch.setenv('LIVE_OUTPUT_BUCKET', TEST_OUTPUT_BUCKET)
         monkeypatch.setattr(main, "OUTPUT_BUCKET", TEST_OUTPUT_BUCKET)
         ob = storage_client.get_bucket(main.OUTPUT_BUCKET)
         return ob

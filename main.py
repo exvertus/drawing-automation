@@ -11,8 +11,8 @@ import functions_framework
 from os import getenv
 
 BUCKET_NAME_JOINER = "-"
-INPUT_BUCKET = getenv('DRAWING_INPUT_BUCKET')
-OUTPUT_BUCKET = getenv('DRAWING_OUTPUT_BUCKET')
+INPUT_BUCKET = getenv('LIVE_INPUT_BUCKET')
+OUTPUT_BUCKET = getenv('LIVE_OUTPUT_BUCKET')
 # TODO: Research suitable dimensions and names based on publishing and site needs.
 MAX_DIMENSIONS = {"large": 1024,
                   "thumbnail": 256}
