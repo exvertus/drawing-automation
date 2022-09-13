@@ -1,11 +1,11 @@
 import pytest
-import subprocess
 import time
 from pathlib import Path
 from os import getenv
 from uuid import uuid4
 from google.cloud import storage
 import main
+import deploy
 
 PROJECT = getenv('GCP_PROJECT')
 TEST_INPUT_BUCKET = getenv('TEST_INPUT_BUCKET')
@@ -22,7 +22,7 @@ class TestSystem:
     """
     @pytest.fixture(scope="class")
     def deploy(self):
-        deploy_result = subprocess.run(['./deploy.sh', TEST_INPUT_BUCKET])
+        deploy_result = deploy.deploy(TEST_INPUT_BUCKET)
         return deploy_result
 
     @pytest.fixture(scope="class")
