@@ -22,7 +22,8 @@ class TestSystem:
     """
     @pytest.fixture(autouse=True, scope="class")
     def deploy(self):
-        deploy_result = deploy(TEST_INPUT_BUCKET)
+        deploy_result = deploy(TEST_INPUT_BUCKET, 
+            output_bucket=TEST_OUTPUT_BUCKET)
         return deploy_result
 
     @pytest.fixture(autouse=True, scope="class")
@@ -59,27 +60,27 @@ class TestSystem:
         blob.delete()
 
     @pytest.fixture(params=main.MAX_DIMENSIONS.items())
-    def fanout_parameters():
-        return 
+    def fanout_by_dimensions(self, upload_test_image, request):
+        return upload_test_image, request.param
 
-    def test_image_exists(self, upload_test_image):
-        dimension_name = upload_test_image["param"][0]
-        max_dimension = upload_test_image["param"][1]
-        image = upload_test_image["image"]
-        assert "image_exists"
+    def test_image_exists(self, input_bucket, fanout_by_dimensions):
+        image = fanout_by_dimensions[0]
+        dimension_name = fanout_by_dimensions[1][0]
+        max_dimension = fanout_by_dimensions[1][1]
+        assert input_bucket.blob(image).exists()
 
     @pytest.mark.skip(reason="TODO")
-    def test_exif_wiped(self, upload_test_image):
+    def test_exif_wiped(self):
         assert "exif_wiped"
 
     @pytest.mark.skip(reason="TODO")
-    def test_watermark_added(self, upload_test_image):
+    def test_watermark_added(self):
         assert "watermark_added"
 
     @pytest.mark.skip(reason="TODO")
-    def test_expected_dimensions(self, upload_test_image):
+    def test_expected_dimensions(self):
         assert "expected_dimensions"
     
     @pytest.mark.skip(reason="TODO")
-    def test_record_updated(self, upload_test_image):
+    def test_record_updated(self):
         assert "record_updated"

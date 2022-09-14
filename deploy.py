@@ -25,7 +25,7 @@ def deploy(trigger_bucket, output_bucket=None):
         output_bucket = getenv('OUTPUT_BUCKET')
     login_as_service_account()
     command = f"{DEPLOY_CMD} --trigger-bucket={trigger_bucket} "\
-        f"--update-env-vars OUTPUT_BUCKET={trigger_bucket}"
+        f"--update-env-vars OUTPUT_BUCKET={output_bucket}"
     logging.info(command)
     args = shlex.split(command)
     return subprocess.run(args, shell=True, capture_output=True, check=True)
