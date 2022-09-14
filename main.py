@@ -11,8 +11,7 @@ import functions_framework
 from os import getenv
 
 BUCKET_NAME_JOINER = "-"
-INPUT_BUCKET = getenv('LIVE_INPUT_BUCKET')
-OUTPUT_BUCKET = getenv('LIVE_OUTPUT_BUCKET')
+OUTPUT_BUCKET = getenv('OUTPUT_BUCKET')
 # TODO: Research suitable dimensions and names based on publishing and site needs.
 MAX_DIMENSIONS = {"large": 1024,
                   "thumbnail": 256}
@@ -25,14 +24,15 @@ storage_client = None
 
 @functions_framework.cloud_event
 def process_public_images(cloud_event):
-    event_id = cloud_event["id"]
-    image = cloud_event.data["name"]
-    if already_processed(image):
-        return image
-    cleaned_image = add_watermark(obfuscate_exif(image), MATERIAL_SOUL_WATERMARK)
-    public_images = shrink_images(cleaned_image, MAX_DIMENSIONS)
-    add_eventid_to_db(image, event_id)
-    return image
+    # event_id = cloud_event["id"]
+    # image = cloud_event.data["name"]
+    # if already_processed(image):
+    #     return image
+    # cleaned_image = add_watermark(obfuscate_exif(image), MATERIAL_SOUL_WATERMARK)
+    # public_images = shrink_images(cleaned_image, MAX_DIMENSIONS)
+    # add_eventid_to_db(image, event_id)
+    # return image
+    pass
 
 def target_blob_path(image_name, description=""):
     pass

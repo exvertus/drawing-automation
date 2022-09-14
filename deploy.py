@@ -20,9 +20,12 @@ def login_as_service_account():
     args = shlex.split(command)
     return subprocess.run(args, shell=True, check=True, capture_output=True)
 
-def deploy(trigger_bucket):
+def deploy(trigger_bucket, output_bucket=None):
+    if not output_bucket:
+        output_bucket = getenv('OUTPUT_BUCKET')
     login_as_service_account()
-    command = f"{DEPLOY_CMD} --trigger-bucket={trigger_bucket}"
+    command = f"{DEPLOY_CMD} --trigger-bucket={trigger_bucket} "\
+        f"--update-env-vars OUTPUT_BUCKET={trigger_bucket}"
     logging.info(command)
     args = shlex.split(command)
     return subprocess.run(args, shell=True, capture_output=True, check=True)

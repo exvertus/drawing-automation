@@ -31,29 +31,18 @@ class TestSystem:
         sc = storage.Client()
         return sc
 
-    @pytest.fixture()
-    def patch_buckets(self, monkeypatch):
-        monkeypatch.setenv('LIVE_INPUT_BUCKET', TEST_INPUT_BUCKET)
-        monkeypatch.setattr(main, 'INPUT_BUCKET', TEST_INPUT_BUCKET)
-        monkeypatch.setenv('LIVE_OUTPUT_BUCKET', TEST_OUTPUT_BUCKET)
-        monkeypatch.setattr(main, 'OUTPUT_BUCKET', TEST_OUTPUT_BUCKET)
-
-    @pytest.fixture()
-    def input_bucket(self, storage_client, patch_buckets):
+    @pytest.fixture(scope="class")
+    def input_bucket(self, storage_client):
         tb = storage_client.get_bucket(TEST_INPUT_BUCKET)
         return tb
 
-    @pytest.fixture()
-    def output_bucket(self, storage_client, patch_buckets):
-        ob = storage_client.get_bucket(main.OUTPUT_BUCKET)
+    @pytest.fixture(scope="class")
+    def output_bucket(self, storage_client):
+        ob = storage_client.get_bucket(TEST_OUTPUT_BUCKET)
         return ob
 
-    @pytest.fixture(
-        autouse=True, 
-        params=main.MAX_DIMENSIONS.items()
-    )
-    def upload_test_image(self, request, 
-        deploy, storage_client, input_bucket):
+    @pytest.fixture(scope="class")
+    def upload_test_image(self, input_bucket):
         # Use random name per-test run in case cleanup fails.
         # Re-using the same image name will break future test
         # runs in the case that the test was halted before cleanup/delete.
@@ -61,7 +50,7 @@ class TestSystem:
         blob = input_bucket.blob(image_name)
         blob.upload_from_filename(Path("./tests/test.jpg"))
         # Wait for Function call from upload to complete.
-        time.sleep(90)
+        time.sleep(45)
 
         yield image_name
 
@@ -69,26 +58,28 @@ class TestSystem:
             ds_blob = main.target_blob_path(image_name, size)
         blob.delete()
 
-    def test_image_exists(self, request, upload_test_image):
-        max_dimension = request.param[0]
+    @pytest.fixture(params=main.MAX_DIMENSIONS.items())
+    def fanout_parameters():
+        return 
+
+    def test_image_exists(self, upload_test_image):
+        dimension_name = upload_test_image["param"][0]
+        max_dimension = upload_test_image["param"][1]
+        image = upload_test_image["image"]
         assert "image_exists"
 
     @pytest.mark.skip(reason="TODO")
-    def test_exif_wiped(self, request, upload_test_image):
-        max_dimension = request.param[0]
+    def test_exif_wiped(self, upload_test_image):
         assert "exif_wiped"
 
     @pytest.mark.skip(reason="TODO")
-    def test_watermark_added(self, request, upload_test_image):
-        max_dimension = request.param[0]
+    def test_watermark_added(self, upload_test_image):
         assert "watermark_added"
 
     @pytest.mark.skip(reason="TODO")
-    def test_expected_dimensions(self, request, upload_test_image):
-        max_dimension = request.param[0]
+    def test_expected_dimensions(self, upload_test_image):
         assert "expected_dimensions"
     
     @pytest.mark.skip(reason="TODO")
-    def test_record_updated(self, request, upload_test_image):
-        max_dimension = request.param[0]
+    def test_record_updated(self, upload_test_image):
         assert "record_updated"
