@@ -24,7 +24,7 @@ MATERIAL_SOUL_WATERMARK = "TODO"
 storage_client = None
 
 @functions_framework.cloud_event
-def imagefunc(cloud_event):
+def process_public_images(cloud_event):
     event_id = cloud_event["id"]
     image = cloud_event.data["name"]
     if already_processed(image):

@@ -4,8 +4,9 @@ import subprocess
 
 RUNTIME = 'python310'
 REGION = 'us-central1'
-DEPLOY_CMD = "gcloud functions deploy imagefunc "\
-    f"--gen2 --region={REGION} --runtime={RUNTIME} --source=. --quiet"
+DEPLOY_CMD = "gcloud functions deploy process-public-images "\
+    f"--gen2 --region={REGION} --runtime={RUNTIME} --quiet "\
+    "--source=. --entry-point=process_public_images"
 
 def deploy(trigger_bucket):
     command = f"{DEPLOY_CMD} --trigger-bucket={trigger_bucket}"

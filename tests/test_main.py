@@ -52,7 +52,8 @@ class TestSystem:
         autouse=True, 
         params=main.MAX_DIMENSIONS.items()
     )
-    def upload_test_image(self, request, deploy, storage_client, input_bucket):
+    def upload_test_image(self, request, 
+        deploy, storage_client, input_bucket):
         # Use random name per-test run in case cleanup fails.
         # Re-using the same image name will break future test
         # runs in the case that the test was halted before cleanup/delete.
