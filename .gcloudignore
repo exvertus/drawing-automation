@@ -1,0 +1,3 @@
+tests/
+.env.shadow
+deploy.py
