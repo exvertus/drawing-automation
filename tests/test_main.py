@@ -5,7 +5,7 @@ from os import getenv
 from uuid import uuid4
 from google.cloud import storage
 import main
-from deploy import deploy
+import deploy
 
 PROJECT = getenv('GCP_PROJECT')
 TEST_INPUT_BUCKET = getenv('TEST_INPUT_BUCKET')
@@ -22,7 +22,7 @@ class TestSystem:
     """
     @pytest.fixture(autouse=True, scope="class")
     def deploy(self):
-        deploy_result = deploy(TEST_INPUT_BUCKET, 
+        deploy_result = deploy.deploy(TEST_INPUT_BUCKET, 
             output_bucket=TEST_OUTPUT_BUCKET)
         return deploy_result
 
