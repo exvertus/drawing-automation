@@ -1,5 +1,4 @@
 import datetime
-import main
 import pytest
 import shlex
 import subprocess
@@ -11,6 +10,7 @@ from uuid import uuid4
 from google.cloud import storage
 
 import deploy
+import main
 
 PROJECT = getenv('GCP_PROJECT')
 TEST_INPUT_BUCKET = getenv('TEST_INPUT_BUCKET')
