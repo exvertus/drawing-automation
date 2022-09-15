@@ -51,8 +51,6 @@ class TestIntegrationFuncFW:
     @pytest.fixture()
     def trigger_event(self, 
         init_functions_framework, mounted_session):
-        """Make sure downstream image storage upload method is called.
-        """
         image_name = f"{uuid4()}.jpg"
         test_tz = datetime.datetime.now().isoformat()
         gcp_storage_msg = {'data': {
@@ -71,6 +69,8 @@ class TestIntegrationFuncFW:
         assert trigger_event['response'].ok
 
     def test_downstream_image_uploaded(self, trigger_event):
+        """Make sure downstream image storage upload method is called.
+        """
         # TODO: finish test
         assert "mocked gcp storage method 'upload' for output bucket" == \
             "called with expected values"
