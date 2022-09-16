@@ -106,9 +106,8 @@ class TestIntegrationFuncFW:
             }
         }
         response = mounted_session.post(LOCAL_URL, json=gcp_storage_msg)
-        return {"img": image_name, "response": response}
+        return {"img": gcp_storage_msg['name'], "response": response}
 
-    # TODO: Fix this broken test once you've settled on correct gcp_storage_msg.
     def test_expected_response(self, trigger_event):
         assert trigger_event['response'].ok
 

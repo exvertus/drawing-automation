@@ -26,15 +26,24 @@ storage_client = None
 
 @functions_framework.cloud_event
 def process_public_images(cloud_event):
-    # event_id = cloud_event["id"]
-    # image = cloud_event.data["name"]
-    # if already_processed(image):
-    #     return image
-    # cleaned_image = add_watermark(obfuscate_exif(image), MATERIAL_SOUL_WATERMARK)
-    # public_images = shrink_images(cleaned_image, MAX_DIMENSIONS)
-    # add_eventid_to_db(image, event_id)
-    # return image
-    pass
+    data = cloud_event.data
+
+    event_id = cloud_event["id"]
+    event_type = cloud_event["type"]
+
+    bucket = data["bucket"]
+    name = data["name"]
+    metageneration = data["metageneration"]
+    timeCreated = data["timeCreated"]
+    updated = data["updated"]
+
+    image = cloud_event.data["name"]
+    if already_processed(image):
+        return image
+    cleaned_image = add_watermark(obfuscate_exif(image), MATERIAL_SOUL_WATERMARK)
+    public_images = shrink_images(cleaned_image, MAX_DIMENSIONS)
+    add_eventid_to_db(image, event_id)
+    return image
 
 def target_blob_path(image_name, description=""):
     pass
