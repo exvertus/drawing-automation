@@ -32,13 +32,17 @@ class TestUnit:
     pass
 
 class TestIntegrationPillow:
-    """'Narrow' integration tests: PIL"""
+    """'Narrow' integration tests: PIL
+    """
     @pytest.fixture(scope="class")
-    def test_image(self, random_jpeg_name):
-        cloud_event_stub = Mock()
-        cloud_event_stub.data["name"] = random_jpeg_name
-        main.process_public_images(cloud_event_stub)
-        return cloud_event_stub.data["name"]
+    def cloud_event(self, random_jpeg_name):
+        stub = Mock()
+        stub.data["name"] = random_jpeg_name
+        return stub
+
+    def test_image(self, cloud_event, monkeypatch):
+        main.process_public_images(cloud_event)
+        return cloud_event.data["name"]
 
     @pytest.fixture()
     def downstream_image(self, test_image, fanout_by_dimesions):
