@@ -7,7 +7,9 @@ import time
 from pathlib import Path
 from os import getenv
 from uuid import uuid4
+from unittest.mock import Mock
 from google.cloud import storage
+from PIL import Image
 
 import deploy
 import main
@@ -18,12 +20,51 @@ TEST_OUTPUT_BUCKET = getenv('TEST_OUTPUT_BUCKET')
 LOCAL_PORT = 8099
 LOCAL_URL = f"http://localhost:{LOCAL_PORT}/"
 
+@pytest.fixture(params=main.MAX_DIMENSIONS.items())
+def fanout_by_dimensions(request):
+    return request.param
+
+@pytest.fixture()
+def random_jpeg_name():
+    return f"{uuid4()}.jpg"
+
 class TestUnit:
     pass
 
+class TestIntegrationPillow:
+    """'Narrow' integration tests: PIL"""
+    @pytest.fixture(scope="class")
+    def test_image(self, random_jpeg_name):
+        cloud_event_stub = Mock()
+        cloud_event_stub.data["name"] = random_jpeg_name
+        main.process_public_images(cloud_event_stub)
+        return cloud_event_stub.data["name"]
+
+    @pytest.fixture()
+    def downstream_image(self, test_image, fanout_by_dimesions):
+        dimension_name = fanout_by_dimensions[0]
+        max_dimension = fanout_by_dimensions[1]
+        downstream_image = Image.open(
+            main.target_blob_path(test_image, description=dimension_name))
+        return {
+            'max_dimension': max_dimension,
+            'longest_dimension': max(downstream_image.size)
+        }
+
+    def test_size_upper_bound(self, downstream_image):
+        """Make sure resizing result is no larger than expected."""
+        assert downstream_image['longest_dimension'] <= \
+            downstream_image['max_dimension']
+
+    def test_size_lower_bound(self, downstream_image):
+        """Make sure resizing result is no smaller than next size down."""
+        sizes = main.MAX_DIMENSIONS.values().sort().insert(0, 0)
+        position = sizes.find(downstream_image['max_dim']) - 1
+        expected_min = sizes[position]
+        assert downstream_image['longest_dim'] > expected_min
+
 class TestIntegrationFuncFW:
-    """'Narrow' itegration tests 
-    running against functions-framework dependency.
+    """'Narrow' integration tests: functions-framework
     """
     @pytest.fixture(scope='class', autouse=True)
     def init_functions_framework(self):
@@ -50,11 +91,10 @@ class TestIntegrationFuncFW:
 
     @pytest.fixture()
     def trigger_event(self, 
-        init_functions_framework, mounted_session):
-        image_name = f"{uuid4()}.jpg"
+        init_functions_framework, mounted_session, random_jpeg_name):
         test_tz = datetime.datetime.now().isoformat()
         gcp_storage_msg = {'data': {
-            'name': image_name,
+            'name': random_jpeg_name,
             'bucket': 'output_bucket',
             'metageneration': '1',
             'timeCreated': test_tz,
@@ -117,15 +157,15 @@ class TestSystem:
             ds_blob = main.target_blob_path(image_name, size)
         blob.delete()
 
-    @pytest.fixture(params=main.MAX_DIMENSIONS.items())
-    def fanout_by_dimensions(self, upload_test_image, request):
-        return upload_test_image, request.param
-
-    def test_image_exists(self, input_bucket, fanout_by_dimensions):
-        image = fanout_by_dimensions[0]
-        dimension_name = fanout_by_dimensions[1][0]
-        max_dimension = fanout_by_dimensions[1][1]
+    def test_image_exists(
+        self, input_bucket, upload_test_image, fanout_by_dimensions):
+        image = upload_test_image
+        dimension_name = fanout_by_dimensions[0]
+        max_dimension = fanout_by_dimensions[1]
         assert input_bucket.blob(image).exists()
+
+    def test_expected_dimensions(self):
+        assert "expected_dimensions"
 
     @pytest.mark.skip(reason="TODO")
     def test_exif_wiped(self):
@@ -134,10 +174,6 @@ class TestSystem:
     @pytest.mark.skip(reason="TODO")
     def test_watermark_added(self):
         assert "watermark_added"
-
-    @pytest.mark.skip(reason="TODO")
-    def test_expected_dimensions(self):
-        assert "expected_dimensions"
     
     @pytest.mark.skip(reason="TODO")
     def test_record_updated(self):

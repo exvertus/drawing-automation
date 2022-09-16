@@ -13,8 +13,10 @@ from os import getenv
 BUCKET_NAME_JOINER = "-"
 OUTPUT_BUCKET = getenv('OUTPUT_BUCKET')
 # TODO: Research suitable dimensions and names based on publishing and site needs.
-MAX_DIMENSIONS = {"large": 1024,
-                  "thumbnail": 256}
+MAX_DIMENSIONS = {"max": 1200,
+                  "feed": 512,
+                  "tile": 293,
+                  "thumb": 128}
 MATERIAL_SOUL_WATERMARK = "TODO"
 
 # Initialize cache for clients, requests sessions, DB-connections, etc.
