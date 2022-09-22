@@ -1,51 +1,71 @@
-"""
-GCP Function deployed as a Cloud Storage event for creating
-copies of images suitable for public consumption:
-    - obfuscates exif data
-    - adds custom watermark
-    - scales down to a max resolution
-      - thumbnail generation
-"""
-
 import functions_framework
+import tempfile
 from os import getenv
+import PIL
+from google.cloud import storage
 
-BUCKET_NAME_JOINER = "-"
 OUTPUT_BUCKET = getenv('OUTPUT_BUCKET')
 # TODO: Research suitable dimensions and names based on publishing and site needs.
 MAX_DIMENSIONS = {"max": 1200,
                   "feed": 512,
-                  "tile": 293,
+                  "tile": 288,
                   "thumb": 128}
 MATERIAL_SOUL_WATERMARK = "TODO"
 
 # Initialize cache for clients, requests sessions, DB-connections, etc.
 # Global-scope code is executed on cold starts only.
+firestore_client = "TODO"
 # Use lazy initialization if there is any chance a reference won't be used.
 storage_client = None
 
 @functions_framework.cloud_event
 def process_public_images(cloud_event):
+    """Process images for public consumption.
+    - Create 
+    """
     data = cloud_event.data
+    local_image = download_image(data["bucket"], data["name"])
+    public_images = create_smaller_copies(local_image)
+    upload_to_output(public_images)
 
-    event_id = cloud_event["id"]
-    event_type = cloud_event["type"]
+def blob_name(image_name, description):
+    """Enforce a standard naming convention for downstream buckets.
 
-    bucket = data["bucket"]
-    name = data["name"]
-    metageneration = data["metageneration"]
-    timeCreated = data["timeCreated"]
-    updated = data["updated"]
+    Args:
+        image_name (str): Image name.
+        description (str): Size description.
 
-    image = cloud_event.data["name"]
-    if already_processed(image):
-        return image
-    cleaned_image = add_watermark(obfuscate_exif(image), MATERIAL_SOUL_WATERMARK)
-    public_images = shrink_images(cleaned_image, MAX_DIMENSIONS)
-    add_eventid_to_db(image, event_id)
-    return image
+    Returns:
+        (str): New image name.
+    """
+    return f"{image_name}-{description}"
 
-def target_blob_path(image_name, description=""):
+def download_image(bucket, name, local_dir):
+    """Download uploaded image into local directory.
+    
+    Args:
+        bucket ()
+    """
+
+def storage_client():
+    """Return storage client and initialize if needed."""
+    global storage_client
+    if not storage_client:
+        storage_client = storage.Client()
+    return storage_client
+
+def create_smaller_copies(image_path):
+    """Create smaller copies of images according to MAX_DIMENSIONS.
+
+    Args:
+        image_path (path-like): A local path to an image.
+
+    Returns:
+        (list of path-like): List of smaller-copy paths.
+    """
+    pass
+
+def upload_to_output(public_images):
     pass
 
 def already_processed(image):
@@ -60,11 +80,6 @@ def obfuscate_exif(image):
 
 def add_watermark(image, watermark):
     """Return image with a custom watermark added.
-    """
-    pass
-
-def shrink_images(image, max_dict=MAX_DIMENSIONS):
-    """Return images scaled down according to max_dict.
     """
     pass
 

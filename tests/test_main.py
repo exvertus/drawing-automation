@@ -1,15 +1,17 @@
 import datetime
+from tkinter import image_names
+from unittest import mock
 import pytest
 import shlex
+import shutil
 import subprocess
 import requests
 import time
-from pathlib import Path
 from os import getenv
+from pathlib import Path
 from uuid import uuid4
-from unittest.mock import Mock
-from google.cloud import storage
-from PIL import Image
+
+from cloudevents.http import CloudEvent
 
 import deploy
 import main
@@ -19,6 +21,7 @@ TEST_INPUT_BUCKET = getenv('TEST_INPUT_BUCKET')
 TEST_OUTPUT_BUCKET = getenv('TEST_OUTPUT_BUCKET')
 LOCAL_PORT = 8099
 LOCAL_URL = f"http://localhost:{LOCAL_PORT}/"
+FINALIZED_EVENT_TYPE = "google.cloud.storage.object.v1.finalized"
 
 @pytest.fixture(params=main.MAX_DIMENSIONS.items())
 def fanout_by_dimensions(request):
@@ -28,40 +31,72 @@ def fanout_by_dimensions(request):
 def random_jpeg_name():
     return f"{uuid4()}.jpg"
 
+@pytest.fixture()
+def patch_pillow(mocker):
+    mocker.patch('PIL')
+
 class TestUnit:
-    pass
+    @pytest.fixture(scope='class')
+    def patch_all(self, class_mocker):
+        class_mocker.patch('')
+
+    @pytest.mark.skip(reason='Too trivial')
+    def test_target_blob_name(self):
+        pass
+
+    def test_create_smaller_copies(self, patch_pillow):
+        image_path = Path()
+        main.create_smaller_copies(image_path)
+        assert "TODO" == "done."
 
 class TestIntegrationPillow:
     """'Narrow' integration tests: PIL
     """
-    @pytest.fixture(scope="class")
-    def cloud_event(self, random_jpeg_name):
-        stub = Mock()
-        stub.data["name"] = random_jpeg_name
-        return stub
-
-    def test_image(self, cloud_event, monkeypatch):
-        main.process_public_images(cloud_event)
-        return cloud_event.data["name"]
+    @pytest.fixture(scope='class')
+    def mock_event(self, class_mocker, random_jpeg_name, tmp_path):
+        shutil.copy(
+            Path(__file__).parents[1] / 'test_main.py',
+            tmp_path / random_jpeg_name
+        )
+        mocked_event = class_mocker.Mock(autospec=CloudEvent)
+        mocked_event.__getitem__ = class_mocker.Mock()
+        # https://cloud.google.com/python/docs/reference/storage/latest/google.cloud.storage.blob.Blob
+        mocked_event.data = {
+            "bucket": "test_bucket_for_storage",
+            "name": random_jpeg_name,
+            "generation": 1,
+            "metageneration": 1,
+            "timeCreated": "2021-10-10 00:00:00.000000Z",
+            "updated": "2021-11-11 00:00:00.000000Z",
+        }
+        return mocked_event
 
     @pytest.fixture()
-    def downstream_image(self, test_image, fanout_by_dimesions):
+    def process_image(self, mock_event):
+        main.process_public_images(mock_event)
+        return mock_event.data["name"]
+
+    @pytest.fixture()
+    def downstream_image(self, process_image, fanout_by_dimensions):
+        from PIL import Image
         dimension_name = fanout_by_dimensions[0]
         max_dimension = fanout_by_dimensions[1]
         downstream_image = Image.open(
-            main.target_blob_path(test_image, description=dimension_name))
+            main.blob_name(process_image, dimension_name))
         return {
             'max_dimension': max_dimension,
             'longest_dimension': max(downstream_image.size)
         }
 
     def test_size_upper_bound(self, downstream_image):
-        """Make sure resizing result is no larger than expected."""
+        """Make sure resizing result is no larger than expected.
+        """
         assert downstream_image['longest_dimension'] <= \
             downstream_image['max_dimension']
 
     def test_size_lower_bound(self, downstream_image):
-        """Make sure resizing result is no smaller than next size down."""
+        """Make sure resizing result is no smaller than next size down.
+        """
         sizes = main.MAX_DIMENSIONS.values().sort().insert(0, 0)
         position = sizes.find(downstream_image['max_dim']) - 1
         expected_min = sizes[position]
@@ -82,34 +117,25 @@ class TestIntegrationFuncFW:
         yield ff_process
 
         ff_process.terminate()
-    
-    @pytest.fixture(scope='class')
-    def mounted_session(self):
-        retry_policy = requests.packages.urllib3.util.retry.Retry(
-            total=6, backoff_factor=1)
-        retry_adapter = requests.adapters.HTTPAdapter(
-            max_retries=retry_policy)
-        session = requests.Session()
-        session.mount(LOCAL_URL, retry_adapter)
-        return session
 
     @pytest.fixture()
-    def trigger_event(self, 
-        init_functions_framework, mounted_session, random_jpeg_name):
-        test_tz = datetime.datetime.now().isoformat()
-        gcp_storage_msg = {'data': {
-            'name': random_jpeg_name,
-            'bucket': 'output_bucket',
-            'metageneration': '1',
-            'timeCreated': test_tz,
-            'updated': test_tz
-            }
+    def trigger_event(
+        self, init_functions_framework, random_jpeg_name, monkeypatch):
+        event_attrs = {
+            "id": "5555555",
+            "type": FINALIZED_EVENT_TYPE,
         }
-        response = mounted_session.post(LOCAL_URL, json=gcp_storage_msg)
-        return {"img": gcp_storage_msg['name'], "response": response}
+        event_data = {
+            "bucket": "test_bucket_for_storage",
+            "name": "new_blob_uploaded",
+            "generation": 1,
+            "metageneration": 1,
+            "timeCreated": "2021-10-10 00:00:00.000000Z",
+            "updated": "2021-11-11 00:00:00.000000Z",
+        }
+        cloud_event = CloudEvent(event_attrs, event_data)
 
-    def test_expected_response(self, trigger_event):
-        assert trigger_event['response'].ok
+        return main.process_public_images(cloud_event)
 
     def test_downstream_image_uploaded(self, trigger_event):
         """Make sure downstream image storage upload method is called.
@@ -130,6 +156,7 @@ class TestSystem:
     @pytest.fixture(autouse=True, scope="class")
     def storage_client(self):
         # TODO: Use cached storage client once main has one
+        from google.cloud import storage
         sc = storage.Client()
         return sc
 
@@ -144,11 +171,8 @@ class TestSystem:
         return ob
 
     @pytest.fixture(scope="class")
-    def upload_test_image(self, input_bucket):
-        # Use random name per-test run in case cleanup fails.
-        # Re-using the same image name will break future test
-        # runs in the case that the test was halted before cleanup/delete.
-        image_name = f"{uuid4()}.jpg"
+    def upload_test_image(self, input_bucket, random_jpeg_name):
+        image_name = random_jpeg_name
         blob = input_bucket.blob(image_name)
         blob.upload_from_filename(Path("./tests/test.jpg"))
         # Wait for Function call from upload to complete.
@@ -157,7 +181,7 @@ class TestSystem:
         yield image_name
 
         for size in main.MAX_DIMENSIONS:
-            ds_blob = main.target_blob_path(image_name, size)
+            ds_blob = main.blob_name(image_name, size)
         blob.delete()
 
     def test_image_exists(
