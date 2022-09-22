@@ -76,6 +76,9 @@ def create_smaller_copies(image_path):
         (list of path-like): List of smaller-copy paths.
     """
     origin_image = Image.open(image_path)
+    print('break')
+    for key, val in MAX_DIMENSIONS.items():
+        pass
 
 def upload_to_output(public_images):
     pass
