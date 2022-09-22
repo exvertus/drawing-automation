@@ -78,7 +78,7 @@ class TestIntegrationPillow:
         # https://cloud.google.com/python/docs/reference/storage/latest/google.cloud.storage.blob.Blob
         mocked_event.data = {
             "bucket": "test_bucket_for_storage",
-            "name": "test/test.jpg",
+            "name": "tests/test.jpg",
             "generation": 1,
             "metageneration": 1,
             "timeCreated": "2021-10-10 00:00:00.000000Z",
