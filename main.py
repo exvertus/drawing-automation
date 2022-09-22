@@ -39,7 +39,7 @@ def blob_name(image_name, description):
     Returns:
         (str): New image name.
     """
-    return f"{image_name}/{description}"
+    return f"{description}/{image_name}"
 
 def storage_client():
     """Return storage client and initialize if needed."""

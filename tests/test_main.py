@@ -36,6 +36,10 @@ def random_jpeg_name():
 def patch_pillow(mocker):
     mocker.patch('PIL')
 
+@pytest.fixture()
+def patch_storage(mocker):
+    mocker.patch('main.storage')
+
 class TestUnit:
     @pytest.fixture(scope='class')
     def mock_client(self, class_mocker):
@@ -44,10 +48,6 @@ class TestUnit:
             name='storage_client')
         class_mocker.patch('main.storage.Client', new=client)
         return client
-
-    @pytest.mark.skip(reason='Too trivial')
-    def test_target_blob_name(self):
-        pass
 
     @pytest.mark.skip(reason='TODO')
     def test_create_smaller_copies(self, patch_pillow):
@@ -65,21 +65,20 @@ class TestUnit:
         main.download_image('test_bucket', 'test_blob_name')
         mock_client.return_value.download_blob_to_file.assert_called()
 
+    def test_create_smaller_copies(self):
+        assert "todo" == "done"
+
 class TestIntegrationPillow:
     """'Narrow' integration tests: PIL
     """
     @pytest.fixture(scope='class')
-    def mock_event(self, class_mocker, random_jpeg_name, tmp_path):
-        shutil.copy(
-            Path(__file__).parents[1] / 'test_main.py',
-            tmp_path / random_jpeg_name
-        )
+    def mock_event(self, class_mocker):
         mocked_event = class_mocker.Mock(autospec=CloudEvent)
         mocked_event.__getitem__ = class_mocker.Mock()
         # https://cloud.google.com/python/docs/reference/storage/latest/google.cloud.storage.blob.Blob
         mocked_event.data = {
             "bucket": "test_bucket_for_storage",
-            "name": random_jpeg_name,
+            "name": "test.jpg",
             "generation": 1,
             "metageneration": 1,
             "timeCreated": "2021-10-10 00:00:00.000000Z",
@@ -88,7 +87,7 @@ class TestIntegrationPillow:
         return mocked_event
 
     @pytest.fixture()
-    def process_image(self, mock_event):
+    def process_image(self, mock_event, patch_storage):
         main.process_public_images(mock_event)
         return mock_event.data["name"]
 
