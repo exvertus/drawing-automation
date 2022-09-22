@@ -36,18 +36,24 @@ def patch_pillow(mocker):
     mocker.patch('PIL')
 
 class TestUnit:
-    @pytest.fixture(scope='class')
-    def patch_all(self, class_mocker):
-        class_mocker.patch('')
-
     @pytest.mark.skip(reason='Too trivial')
     def test_target_blob_name(self):
         pass
 
+    @pytest.mark.skip(reason='TODO')
     def test_create_smaller_copies(self, patch_pillow):
         image_path = Path()
         main.create_smaller_copies(image_path)
         assert "TODO" == "done."
+
+    def test_storage_client(self, monkeypatch, mocker):
+        monkeypatch.setattr(main, "gcp_storage_client", None)
+        mock_client = mocker.MagicMock(autospec=main.storage.Client)
+        mocker.patch('main.storage.Client', new=mock_client)
+        first = main.storage_client()
+        second = main.storage_client()
+        assert first is second
+        assert mock_client.call_count == 1
 
 class TestIntegrationPillow:
     """'Narrow' integration tests: PIL

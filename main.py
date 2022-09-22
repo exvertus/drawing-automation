@@ -16,7 +16,7 @@ MATERIAL_SOUL_WATERMARK = "TODO"
 # Global-scope code is executed on cold starts only.
 firestore_client = "TODO"
 # Use lazy initialization if there is any chance a reference won't be used.
-storage_client = None
+gcp_storage_client = None
 
 @functions_framework.cloud_event
 def process_public_images(cloud_event):
@@ -49,10 +49,10 @@ def download_image(bucket, name, local_dir):
 
 def storage_client():
     """Return storage client and initialize if needed."""
-    global storage_client
-    if not storage_client:
-        storage_client = storage.Client()
-    return storage_client
+    global gcp_storage_client
+    if not gcp_storage_client:
+        gcp_storage_client = storage.Client()
+    return gcp_storage_client
 
 def create_smaller_copies(image_path):
     """Create smaller copies of images according to MAX_DIMENSIONS.
