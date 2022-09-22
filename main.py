@@ -6,6 +6,7 @@ from PIL import Image
 from google.cloud import storage
 
 OUTPUT_BUCKET = getenv('OUTPUT_BUCKET')
+ARTIFACTS_DIR = getenv('IMAGE_ARTIFACTS_DIR')
 # TODO: Research suitable dimensions and names based on publishing and site needs.
 MAX_DIMENSIONS = {"max": 1200,
                   "feed": 512,
