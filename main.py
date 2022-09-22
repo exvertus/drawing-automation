@@ -1,6 +1,7 @@
 import functions_framework
 import tempfile
 from os import getenv
+from pathlib import Path
 import PIL
 from google.cloud import storage
 
@@ -38,14 +39,7 @@ def blob_name(image_name, description):
     Returns:
         (str): New image name.
     """
-    return f"{image_name}-{description}"
-
-def download_image(bucket, name, local_dir):
-    """Download uploaded image into local directory.
-    
-    Args:
-        bucket ()
-    """
+    return f"{image_name}/{description}"
 
 def storage_client():
     """Return storage client and initialize if needed."""
@@ -54,8 +48,23 @@ def storage_client():
         gcp_storage_client = storage.Client()
     return gcp_storage_client
 
+def download_image(bucket, name):
+    """Download uploaded image into current working directory.
+    
+    Args:
+        bucket (str): Storage Bucket.
+        name (str): Image name:
+
+    Returns:
+        (path-like): local path of image
+    """
+    client = storage_client()
+    src_bucket = storage.Bucket(client, name=bucket)
+    blob = storage.Blob(name, src_bucket)
+    client.download_blob_to_file(blob, Path('.'))
+
 def create_smaller_copies(image_path):
-    """Create smaller copies of images according to MAX_DIMENSIONS.
+    """Create smaller copies of image according to MAX_DIMENSIONS.
 
     Args:
         image_path (path-like): A local path to an image.

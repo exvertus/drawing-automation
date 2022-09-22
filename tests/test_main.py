@@ -1,4 +1,5 @@
 import datetime
+from enum import auto
 from tkinter import image_names
 from unittest import mock
 import pytest
@@ -36,6 +37,14 @@ def patch_pillow(mocker):
     mocker.patch('PIL')
 
 class TestUnit:
+    @pytest.fixture(scope='class')
+    def mock_client(self, class_mocker):
+        client = class_mocker.MagicMock(
+            autospec=main.storage.Client, 
+            name='storage_client')
+        class_mocker.patch('main.storage.Client', new=client)
+        return client
+
     @pytest.mark.skip(reason='Too trivial')
     def test_target_blob_name(self):
         pass
@@ -46,14 +55,15 @@ class TestUnit:
         main.create_smaller_copies(image_path)
         assert "TODO" == "done."
 
-    def test_storage_client(self, monkeypatch, mocker):
+    def test_storage_client(self, monkeypatch, mock_client):
         monkeypatch.setattr(main, "gcp_storage_client", None)
-        mock_client = mocker.MagicMock(autospec=main.storage.Client)
-        mocker.patch('main.storage.Client', new=mock_client)
         first = main.storage_client()
         second = main.storage_client()
-        assert first is second
-        assert mock_client.call_count == 1
+        assert (first is second) and (mock_client.call_count == 1)
+
+    def test_download_image(self, mock_client):
+        main.download_image('test_bucket', 'test_blob_name')
+        mock_client.return_value.download_blob_to_file.assert_called()
 
 class TestIntegrationPillow:
     """'Narrow' integration tests: PIL
