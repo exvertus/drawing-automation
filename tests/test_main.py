@@ -71,7 +71,7 @@ class TestUnit:
 class TestIntegrationPillow:
     """'Narrow' integration tests: PIL
     """
-    @pytest.fixture(scope='class')
+    @pytest.fixture(scope='class', autouse=True)
     def mock_event(self, class_mocker):
         mocked_event = class_mocker.Mock(autospec=CloudEvent)
         mocked_event.__getitem__ = class_mocker.Mock()
@@ -86,7 +86,7 @@ class TestIntegrationPillow:
         }
         return mocked_event
 
-    @pytest.fixture(scope='class')
+    @pytest.fixture(scope='class', autouse=True)
     def patch_download_image(self, class_mocker):
         class_mocker.patch(
             'main.download_image', 
