@@ -90,7 +90,7 @@ class TestIntegrationPillow:
     def patch_download_image(self, class_mocker):
         class_mocker.patch(
             'main.download_image', 
-            return_value=Path('.') / 'test/test.jpg')
+            return_value=Path('.') / 'tests/test.jpg')
 
     @pytest.fixture(scope='class')
     def process_image(self, mock_event, patch_storage):
