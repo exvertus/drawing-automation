@@ -1,8 +1,8 @@
+from statistics import mode
 import functions_framework
-import tempfile
 from os import getenv
 from pathlib import Path
-import PIL
+from PIL import Image
 from google.cloud import storage
 
 OUTPUT_BUCKET = getenv('OUTPUT_BUCKET')
@@ -61,7 +61,10 @@ def download_image(bucket, name):
     client = storage_client()
     src_bucket = storage.Bucket(client, name=bucket)
     blob = storage.Blob(name, src_bucket)
-    client.download_blob_to_file(blob, Path('.'))
+    local_file = Path('.') / name
+    with local_file.open(mode='w') as lf:
+        client.download_blob_to_file(blob, lf)
+    return local_file
 
 def create_smaller_copies(image_path):
     """Create smaller copies of image according to MAX_DIMENSIONS.
@@ -72,7 +75,7 @@ def create_smaller_copies(image_path):
     Returns:
         (list of path-like): List of smaller-copy paths.
     """
-    pass
+    origin_image = Image.open(image_path)
 
 def upload_to_output(public_images):
     pass

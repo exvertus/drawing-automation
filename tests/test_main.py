@@ -36,9 +36,9 @@ def random_jpeg_name():
 def patch_pillow(mocker):
     mocker.patch('PIL')
 
-@pytest.fixture()
-def patch_storage(mocker):
-    mocker.patch('main.storage')
+@pytest.fixture(scope='class')
+def patch_storage(class_mocker):
+    class_mocker.patch('main.storage')
 
 class TestUnit:
     @pytest.fixture(scope='class')
@@ -78,7 +78,7 @@ class TestIntegrationPillow:
         # https://cloud.google.com/python/docs/reference/storage/latest/google.cloud.storage.blob.Blob
         mocked_event.data = {
             "bucket": "test_bucket_for_storage",
-            "name": "test.jpg",
+            "name": "test/test.jpg",
             "generation": 1,
             "metageneration": 1,
             "timeCreated": "2021-10-10 00:00:00.000000Z",
@@ -86,7 +86,13 @@ class TestIntegrationPillow:
         }
         return mocked_event
 
-    @pytest.fixture()
+    @pytest.fixture(scope='class')
+    def patch_download_image(self, class_mocker):
+        class_mocker.patch(
+            'main.download_image', 
+            return_value=Path('.') / 'test/test.jpg')
+
+    @pytest.fixture(scope='class')
     def process_image(self, mock_event, patch_storage):
         main.process_public_images(mock_event)
         return mock_event.data["name"]
@@ -96,8 +102,9 @@ class TestIntegrationPillow:
         from PIL import Image
         dimension_name = fanout_by_dimensions[0]
         max_dimension = fanout_by_dimensions[1]
-        downstream_image = Image.open(
-            main.blob_name(process_image, dimension_name))
+        expected_path = Path(__file__).parents[1] /\
+            main.blob_name(process_image, dimension_name)
+        downstream_image = Image.open(expected_path)
         return {
             'max_dimension': max_dimension,
             'longest_dimension': max(downstream_image.size)
