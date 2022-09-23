@@ -1,3 +1,4 @@
+from decimal import DivisionByZero
 from statistics import mode
 import functions_framework
 from os import getenv
@@ -69,17 +70,32 @@ def download_image(bucket, name):
 
 def create_smaller_copies(image_path):
     """Create smaller copies of image according to MAX_DIMENSIONS.
+    Preserves original aspect ratio of image_path.
 
     Args:
         image_path (path-like): A local path to an image.
 
     Returns:
-        (list of path-like): List of smaller-copy paths.
+        (list of path-like): List of paths to smaller copies.
     """
+    artifact_folder = Path(ARTIFACTS_DIR)
     origin_image = Image.open(image_path)
-    print('break')
-    for key, val in MAX_DIMENSIONS.items():
-        pass
+    longest = max(origin_image.size)
+    if longest <= 0:
+        raise DivisionByZero(f"Negative/zero {longest} not expected here!")
+    fps = []
+    for dim_type, this_max in MAX_DIMENSIONS.items():
+        multiplier = this_max / longest
+        scaled_dimensions = \
+            [int(multiplier * dimension) for dimension in origin_image.size]
+        resized = origin_image.resize(scaled_dimensions)
+        filepath = artifact_folder / blob_name(
+            Path(origin_image.filename).name, dim_type)
+        filepath.parent.mkdir(parents=True, exist_ok=True)
+        with filepath.open(mode='wb+') as f:
+            resized.save(f)
+        fps.append(filepath)
+    return fps
 
 def upload_to_output(public_images):
     pass

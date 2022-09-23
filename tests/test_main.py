@@ -66,6 +66,7 @@ class TestUnit:
         mock_client.return_value.download_blob_to_file.assert_called()
 
     def test_create_smaller_copies(self):
+        """Make sure aspect-ratio is preserved in pillow-call"""
         assert "todo" == "done"
 
 class TestIntegrationPillow:
@@ -102,8 +103,9 @@ class TestIntegrationPillow:
         from PIL import Image
         dimension_name = fanout_by_dimensions[0]
         max_dimension = fanout_by_dimensions[1]
-        expected_path = Path(__file__).parents[1] /\
-            main.blob_name(process_image, dimension_name)
+        expected_path = Path(main.ARTIFACTS_DIR) /\
+            main.blob_name(
+                Path(process_image).name, dimension_name)
         downstream_image = Image.open(expected_path)
         return {
             'max_dimension': max_dimension,
@@ -119,10 +121,12 @@ class TestIntegrationPillow:
     def test_size_lower_bound(self, downstream_image):
         """Make sure resizing result is no smaller than next size down.
         """
-        sizes = main.MAX_DIMENSIONS.values().sort().insert(0, 0)
-        position = sizes.find(downstream_image['max_dim']) - 1
+        sizes = list(main.MAX_DIMENSIONS.values())
+        sizes.sort()
+        sizes.insert(0, 0)
+        position = sizes.index(downstream_image['max_dimension']) - 1
         expected_min = sizes[position]
-        assert downstream_image['longest_dim'] > expected_min
+        assert downstream_image['longest_dimension'] > expected_min
 
 class TestIntegrationFuncFW:
     """'Narrow' integration tests: functions-framework
