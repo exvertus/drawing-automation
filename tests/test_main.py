@@ -179,7 +179,7 @@ class TestIntegrationFuncFW:
             "called with expected values"
 
 class TestSystem:
-    """Tests that run against live system.
+    """Tests that run against live cloud system.
     """
     @pytest.fixture(autouse=True, scope="class")
     def deploy(self):
