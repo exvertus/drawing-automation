@@ -1,3 +1,4 @@
+from unittest.mock import patch
 import pytest
 import shlex
 import shutil
@@ -29,10 +30,10 @@ def random_jpeg_name():
 
 @pytest.fixture()
 def patch_pillow(mocker):
-    mocker.patch('PIL')
+    return mocker.patch('main.Image')
 
 @pytest.fixture(scope='class')
-def patch_storage(class_mocker):
+def patch_storage_class(class_mocker):
     class_mocker.patch('main.storage')
 
 class TestUnit:
@@ -44,12 +45,6 @@ class TestUnit:
         class_mocker.patch('main.storage.Client', new=client)
         return client
 
-    @pytest.mark.skip(reason='TODO')
-    def test_create_smaller_copies(self, patch_pillow):
-        image_path = Path()
-        main.create_smaller_copies(image_path)
-        assert "TODO" == "done."
-
     def test_storage_client(self, monkeypatch, mock_client):
         monkeypatch.setattr(main, "gcp_storage_client", None)
         first = main.storage_client()
@@ -60,9 +55,25 @@ class TestUnit:
         main.download_image('test_bucket', 'test_blob_name')
         mock_client.return_value.download_blob_to_file.assert_called()
 
-    def test_create_smaller_copies(self):
-        """Make sure aspect-ratio is preserved in pillow-call"""
-        assert "todo" == "done"
+    def test_create_smaller_copies(
+        self, patch_pillow, mocker, fs, monkeypatch):
+        """Make sure aspect-ratio is preserved in pillow-calls.
+        """
+        monkeypatch.setattr(main, "ARTIFACTS_DIR", "/artifacts")
+        instance_mock = mocker.Mock(name="origin_image")
+        instance_mock.size = (5000, 3000)
+        instance_mock.filename = 'notafile.jpg'
+        instance_mock.resize = mocker.Mock(name='PIL.Image.resize')
+        patch_pillow.open = mocker.Mock(
+            name='PIL.Image.open',
+            return_value=instance_mock
+        )
+        expected_ratio = round(instance_mock.size[0] / instance_mock.size[1], 1)
+        image_path = Path('/any/old/path/image.jpg')
+        main.create_smaller_copies(image_path)
+        matches = [round(cll.args[0][0] / cll.args[0][1], 1) == expected_ratio \
+            for cll in instance_mock.resize.call_args_list]
+        assert all(matches)
 
 class TestIntegrationPillow:
     """'Narrow' integration tests: PIL
@@ -89,7 +100,7 @@ class TestIntegrationPillow:
             return_value=Path('.') / 'tests/test.jpg')
 
     @pytest.fixture(scope='class')
-    def process_image(self, mock_event, patch_storage):
+    def process_image(self, mock_event, patch_storage_class):
         main.process_public_images(mock_event)
         yield mock_event.data["name"]
         shutil.rmtree(Path(main.ARTIFACTS_DIR))
@@ -146,6 +157,7 @@ class TestIntegrationFuncFW:
         event_attrs = {
             "id": "5555555",
             "type": FINALIZED_EVENT_TYPE,
+            "source": "doesntmatter.gov"
         }
         event_data = {
             "bucket": "test_bucket_for_storage",
