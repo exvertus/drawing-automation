@@ -1,12 +1,7 @@
-import datetime
-from enum import auto
-from tkinter import image_names
-from unittest import mock
 import pytest
 import shlex
 import shutil
 import subprocess
-import requests
 import time
 from os import getenv
 from pathlib import Path
@@ -96,7 +91,8 @@ class TestIntegrationPillow:
     @pytest.fixture(scope='class')
     def process_image(self, mock_event, patch_storage):
         main.process_public_images(mock_event)
-        return mock_event.data["name"]
+        yield mock_event.data["name"]
+        shutil.rmtree(Path(main.ARTIFACTS_DIR))
 
     @pytest.fixture()
     def downstream_image(self, process_image, fanout_by_dimensions):
